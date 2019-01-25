@@ -16,16 +16,23 @@ import copy
 
 
 # Global Variables
-TICKS_LIMIT = 3000
+REFILL_NUMBER_AT_A_TIME = 50
+REFILL_COEFF = 1
+REFILL_TRAVEL_COEFF = 1
+DEFENSE_TRAVEL_COEFF = 1
+DEFENSE_CHARGE_COEFF = 1
+DEFENSE_CHARGE_TIME_COEFF = 1
+DEFENSE_TRIGGERED_COEFF = 1
+DEFENSE_TRIGGERED_PUNISHMENT = 100
+TICKS_LIMIT = 10800
 f=0.14
 y_outer=5000*f
 x_outer=8000*f
 width = int(round(x_outer))
 height = int(round(y_outer))
-hp1=2000
-hp2=2000
+INITIAL_STATE_1 = {'location_self': (500*f, 500*f), 'location_op': (7500*f, 4500*f), 'HP': 2000, 'defense': 0, 'barrel_heat': 0, 'projectiles_left': 40}
+INITIAL_STATE_2 = {'location_self': (7500*f, 4500*f), 'location_op': (500*f, 500*f), 'HP': 2000, 'defense': 0, 'barrel_heat': 0, 'projectiles_left': 40}
 projectiles = list()
-
 f2 = 0.125 # factor to multiply by all dimensions given in rules manual
 x1 = (x_outer-8000*f2)/2# bottom left
 y1 = (y_outer-5000*f2)/2
@@ -104,17 +111,16 @@ player1_shape7.color = THECOLORS['blue']
  player2_shape7 = pymunk.Segment(player2_body,(0,0),(250*f2*cos(angle),250*f2*sin(angle)),3)
  player2_shape7.color = THECOLORS['blue']
 #TODO Make a function to translate and rotate the bot from a start_pos and start_orientation to a final_post and final_orientation
-def translate_player1(linearspeed,direction):
-    player1_body.velocity=(linearspeed*cos(direction),linearspeed*sin(direction))
-def rotate_player1(angularvelocity):
-    player1_body.angular_velocity = angularvelocity    
-def translate_player2(linearspeed,direction):
-    player2_body.velocity=(linearspeed*cos(direction),linearspeed*sin(direction))
-def rotate_player2(angularvelocity):
-    player2_body.angular_velocity = angularvelocity    
-
-
-    
+def translate_player(linearspeed, direction, player):
+    if player == 1:
+        player1_body.velocity=(linearspeed*direction)
+    elif player == 2:
+        player2_body.velocity=(linearspeed*direction)
+def rotate_player(angularvelocity, player):
+    if player == 1:
+        player1_body.angular_velocity = angularvelocity    
+    elif player == 2:
+        player2_body.angular_velocity = angularvelocity    
 
 def spawn_ball(space, position, direction, speed): #TODO Make this function accept a speed of launch
     ball_body = pymunk.Body(1, pymunk.inf)
@@ -131,7 +137,7 @@ def spawn_ball(space, position, direction, speed): #TODO Make this function acce
         body.velocity = body.velocity.normalized() * speed
     ball_body.velocity_func = constant_velocity     
     space.add(ball_body, ball_shape)
-    projectiles.append(ball_body)
+    projectiles.append(ball_shape)
 
 TIME_STEP = 60.0  # Step size for pymunk
 TICKS_LIMIT = 3000  # Max ticks to consider
@@ -265,10 +271,7 @@ def setup_level(space):
         line.color = THECOLORS['black']
         line.sensor = True
     space.add(bonus_lines2)
-    for line in start_lines1:
-        line.color = THECOLORS['blue']
-        line.sensor = True
-    start_lines1 = [pymunk.Segment(space.static_body,(x1,y1),(x1+1000*f2,y1),2),
+    start_lines1 = [pymunk.Segment(space.static_body,(x1,y1),(x1+1000*f2,y1),2),    
     pymunk.Segment(space.static_body,(x1,y1),(x1,y1+1000*f2),2),
     pymunk.Segment(space.static_body,(x1+1000*f2,y1),(x1+1000*f2,y1+1000*f2),2),
     pymunk.Segment(space.static_body,(x1,y1+1000*f2),(x1+1000*f2,y1+1000*f2),2)]
@@ -290,6 +293,13 @@ def don(s1, conn1):
     s1.close()
     conn1.close()
     sys.exit()
+
+def draw_arrow(screen, position, angle):
+    length = 100*f
+    endpos_x = (position[0] + cos(angle) * length)
+    endpos_y = (position[1] - (length* sin(angle)))
+    pygame.draw.line(
+        screen, (50, 255, 50), (endpos_x, endpos_y), position, 3)
 
 #Implementation of line of sight
 def queryinfo():
