@@ -13,6 +13,7 @@ import random
 import sys
 import os
 import copy
+import array
 
 
 # Global Variables
@@ -55,6 +56,8 @@ collision_types = {
     "armor2": 6
 }
 # player 1
+players = []
+
 player1_armors = []
 player1_body = pymunk.Body(500,pymunk.inf)
 player1_body.position = 300, 100
@@ -84,6 +87,7 @@ angle=0
 player1_shape7 = pymunk.Segment(player1_body,(0,0),(250*f2*cos(angle),250*f2*sin(angle)),3)
 player1_shape7.color = THECOLORS['blue']
 
+player.append(player1_body)
  #player 2
  player2_armors = []
  player2_body = pymunk.Body(500,pymunk.inf)
@@ -112,6 +116,7 @@ player1_shape7.color = THECOLORS['blue']
  angle=0
  player2_shape7 = pymunk.Segment(player2_body,(0,0),(250*f2*cos(angle),250*f2*sin(angle)),3)
  player2_shape7.color = THECOLORS['blue']
+ player.append(player2_body)
 #TODO Make a function to translate and rotate the bot from a start_pos and start_orientation to a final_post and final_orientation
 def translate_player(linearspeed, direction, player):
     if player == 1:
