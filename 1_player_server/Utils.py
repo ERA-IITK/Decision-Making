@@ -268,6 +268,13 @@ def setup_level(space):
     for line in start_lines1:
         line.color = THECOLORS['blue']
         line.sensor = True
+    start_lines1 = [pymunk.Segment(space.static_body,(x1,y1),(x1+1000*f2,y1),2),
+    pymunk.Segment(space.static_body,(x1,y1),(x1,y1+1000*f2),2),
+    pymunk.Segment(space.static_body,(x1+1000*f2,y1),(x1+1000*f2,y1+1000*f2),2),
+    pymunk.Segment(space.static_body,(x1,y1+1000*f2),(x1+1000*f2,y1+1000*f2),2)]
+    for line in start_lines1:
+        line.color = THECOLORS['blue']
+        line.sensor = True
     space.add(start_lines1)
     start_lines2 = [pymunk.Segment(space.static_body,(x4,y4),(x4-1000*f2,y4),2),
     pymunk.Segment(space.static_body,(x4,y4),(x4,y4-1000*f2),2),
