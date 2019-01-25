@@ -147,7 +147,7 @@ def setup_level(space):
     brick_shape = pymunk.Poly.create_box(brick_body, (1000*f2,250*f2))
     brick_shape.elasticity = 0.0
     brick_shape.friction = 10000.0
-    brick_shape.color = THECOLORS['blue']
+    brick_shape.color = THECOLORS['brown']
     brick_shape.collision_type = collision_types["brick"]
     space.add(brick_body, brick_shape)
     obstacles.append(brick_shape)
@@ -159,7 +159,7 @@ def setup_level(space):
     brick_shape = pymunk.Poly.create_box(brick_body, (250*f2,1000*f2))
     brick_shape.elasticity = 0.0
     brick_shape.friction = 10000.0
-    brick_shape.color = THECOLORS['blue']
+    brick_shape.color = THECOLORS['brown']
     brick_shape.collision_type = collision_types["brick"]
     space.add(brick_body, brick_shape)
     obstacles.append(brick_shape)
@@ -171,7 +171,7 @@ def setup_level(space):
     brick_shape = pymunk.Poly.create_box(brick_body, (250*f2,1000*f2))
     brick_shape.elasticity = 0.0
     brick_shape.friction = 10000.0
-    brick_shape.color = THECOLORS['blue']
+    brick_shape.color = THECOLORS['brown']
     brick_shape.collision_type = collision_types["brick"]
     space.add(brick_body, brick_shape)
     obstacles.append(brick_shape)
@@ -183,7 +183,7 @@ def setup_level(space):
     brick_shape = pymunk.Poly.create_box(brick_body, (1000*f2,250*f2))
     brick_shape.elasticity = 0.0
     brick_shape.friction = 10000.0
-    brick_shape.color = THECOLORS['blue']
+    brick_shape.color = THECOLORS['brown']
     brick_shape.collision_type = collision_types["brick"]
     space.add(brick_body, brick_shape)
     obstacles.append(brick_shape)
@@ -195,7 +195,7 @@ def setup_level(space):
     brick_shape = pymunk.Poly.create_box(brick_body, (250*f2,1000*f2))
     brick_shape.elasticity = 0.0
     brick_shape.friction = 10000.0
-    brick_shape.color = THECOLORS['blue']
+    brick_shape.color = THECOLORS['brown']
     brick_shape.collision_type = collision_types["brick"]
     space.add(brick_body, brick_shape)
     obstacles.append(brick_shape)
@@ -207,7 +207,7 @@ def setup_level(space):
     brick_shape = pymunk.Poly.create_box(brick_body, (250*f2,1000*f2))
     brick_shape.elasticity = 0.0
     brick_shape.friction = 10000.0
-    brick_shape.color = THECOLORS['blue']
+    brick_shape.color = THECOLORS['brown']
     brick_shape.collision_type = collision_types["brick"]
     space.add(brick_body, brick_shape)
     obstacles.append(brick_shape)
@@ -219,7 +219,7 @@ def setup_level(space):
     brick_shape = pymunk.Poly.create_box(brick_body, (1000*f2,250*f2))
     brick_shape.elasticity = 0.0
     brick_shape.friction = 10000.0
-    brick_shape.color = THECOLORS['blue']
+    brick_shape.color = THECOLORS['brown']
     brick_shape.collision_type = collision_types["brick"]
     space.add(brick_body, brick_shape)
     obstacles.append(brick_shape)
@@ -265,6 +265,18 @@ def setup_level(space):
         line.color = THECOLORS['black']
         line.sensor = True
     space.add(bonus_lines2)
+    for line in start_lines1:
+        line.color = THECOLORS['blue']
+        line.sensor = True
+    space.add(start_lines1)
+    start_lines2 = [pymunk.Segment(space.static_body,(x4,y4),(x4-1000*f2,y4),2),
+    pymunk.Segment(space.static_body,(x4,y4),(x4,y4-1000*f2),2),
+    pymunk.Segment(space.static_body,(x4,y4-1000*f2),(x4-1000*f2,y4-1000*f2),2),
+    pymunk.Segment(space.static_body,(x4-1000*f2,y4),(x4-1000*f2,y4-1000*f2),2)]
+    for line in start_lines2:
+        line.color = THECOLORS['red']
+        line.sensor = True
+    space.add(start_lines2)
     return obstacles
 
 def don(s1, conn1):
