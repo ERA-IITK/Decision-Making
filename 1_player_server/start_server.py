@@ -65,7 +65,8 @@ def play(state_1, action_1, state_2, action_2, score_1, score_2):
     # 5 - Escape action = {action_type, velocity, orientation} Position and orientation of the robot in the best escape spot
     # 6 - Roam action = {action_type}
     if action_1[0] == 1: #Shoot
-        spawn_ball(space, player1_body.position, action[1])
+        spawn_ball(space, player1_body.position, action_1[1])
+        barrel_heat_1 = barrel_heat_1 + action_1[1]
     elif action_1[0] == 2: #Chase
         translate_player(action_1["velocity"]["linearspeed"], action_1["velocity"]["direction"], 1)
     elif action_1[0] == 3: #Refill
@@ -98,7 +99,8 @@ def play(state_1, action_1, state_2, action_2, score_1, score_2):
         translate_player(action_1["velocity"]["linearspeed"], action_1["velocity"]["direction"], 1)
 
     if action_2[0] == 1: #Shoot
-        spawn_ball(space, player2_body.position, action[1])
+        spawn_ball(space, player2_body.position, action[_21])
+        barrel_heat_2 = barrel_heat_2 + action_2[1]
     elif action_2[0] == 2: #Chase
         translate_player(action_2["velocity"]["linearspeed"], action_2["velocity"]["direction"], 2)
     elif action_2[0] == 3: #Refill
@@ -144,11 +146,20 @@ def play(state_1, action_1, state_2, action_2, score_1, score_2):
         for armor in player1_armors:
             if dist(projectile.body.position, armor.body.position) < 1:
             if defense > 0: #Within 30s of defense zone
-                HP -= 25
-                score2 += 25
+                HP_1 -= 25
+                score_2 += SHOOT_HIT_COEFF*25
             else:
-                HP -= 50
-                score2 += 50
+                HP_1 -= 50
+                score_2 += SHOOT_HIT_COEFF*50
+            space.remove(projectile, projectile.body)
+        for armor in player2_armors:
+            if dist(projectile.body.position, armor.body.position) < 1:
+            if defense > 0: #Within 30s of defense zone
+                HP_2 -= 25
+                score_1 += SHOOT_HIT_COEFF*25
+            else:
+                HP_2 -= 50
+                score_1 += SHOOT_HIT_COEFF*50
             space.remove(projectile, projectile.body)
 
     pygame.display.flip()
@@ -268,13 +279,14 @@ if __name__ == '__main__':
             action2 = tuplise(a1.replace(" ", "").split(','))
 
         next_state, queen_flag, reward = play(next_state, 1, validate(action, next_state))
+        # Defense cooldown
+        if next_state["defense"] > 0:
+            next_state["defense"] = next_state["defense"] - (1/TIME_STEP)
+        if (1/TIME_STEP) - next_state["defense"] > 0:
+            next_state["defense"] = 0            
         space.step(1/TIME_STEP)
         clock.tick(TIME_STEP)
 
     if it >= 5000:
         print "Player took more than 500 turns, aborting"
         sys.exit()
-
-    tmp = "Cleared Board in " + str(it) + " turns. Realtime taken: "+str(time.time(
-    ) - start_time)+" s @ "+str(round((it*1.0)/(time.time() - start_time), 2)) + " turns/s" +" with random seed " + str(args.rng) + "\n"
-    don(s1, conn1)
