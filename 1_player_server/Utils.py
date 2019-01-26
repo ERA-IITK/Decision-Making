@@ -28,6 +28,7 @@ DEFENSE_TRIGGERED_PUNISHMENT = 100
 SHOOT_HIT_COEFF = 1
 TICKS_LIMIT = 10800
 HEALTH_FREQUENCY = 6
+ENEMY_SEEN_REWARD = 1
 f=0.14
 y_outer=5000*f
 x_outer=8000*f
@@ -323,6 +324,7 @@ def queryinfo():
     query = space.segment_query_first(pt1,pt2,1,pymunk.ShapeFilter())
     if query:
         print("my sight is blocked")
+    return query
     #c_p=query.point
     #line=pymunk.Segment(space.static_body,player_body.position,player2_body.position,1)
     #line.sensor=True
