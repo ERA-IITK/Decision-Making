@@ -279,13 +279,6 @@ if __name__ == '__main__':
             action2 = tuplise(a1.replace(" ", "").split(','))
 
         next_state, queen_flag, reward = play(next_state, 1, validate(action, next_state))
-<<<<<<< 1d1129f239ccf3d167d2010762727b2c148a7fd3
-        # Defense cooldown
-        if next_state["defense"] > 0:
-            next_state["defense"] = next_state["defense"] - (1/TIME_STEP)
-        if (1/TIME_STEP) - next_state["defense"] > 0:
-            next_state["defense"] = 0            
-=======
         
         if barrel_heat_1>=720:
             HP_1 = HP_1 - (barrel_heat_1-720)*40
@@ -306,7 +299,11 @@ if __name__ == '__main__':
             elif HP_2 < 400:
                 barrel_heat_2 = barrel_heat_2 - 24
                 
->>>>>>> barrel heat added
+        # Defense cooldown
+        if next_state["defense"] > 0:
+            next_state["defense"] = next_state["defense"] - (1/TIME_STEP)
+        if (1/TIME_STEP) - next_state["defense"] > 0:
+            next_state["defense"] = 0            
         space.step(1/TIME_STEP)
         clock.tick(TIME_STEP)
 
