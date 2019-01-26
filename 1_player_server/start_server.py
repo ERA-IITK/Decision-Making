@@ -304,6 +304,26 @@ if __name__ == '__main__':
             next_state["defense"] = next_state["defense"] - (1/TIME_STEP)
         if (1/TIME_STEP) - next_state["defense"] > 0:
             next_state["defense"] = 0            
+        
+        if barrel_heat_1>=720:
+            HP_1 = HP_1 - (barrel_heat_1-720)*40
+        if it%HEALTH_FREQUENCY==0:
+            if barrel_heat_1<720 and barrel_heat_1>360:
+                HP_1 = HP_1 - (barrel_heat_1-360)*4
+            if HP_1 >= 400:
+                barrel_heat_1 = barrel_heat_1 - 12
+            elif HP_1 < 400:
+                barrel_heat_1 = barrel_heat_1 - 24
+        if barrel_heat_2>=720:
+            HP_2 = HP_2 - (barrel_heat_2-720)*40
+        if it%HEALTH_FREQUENCY==0:
+            if barrel_heat_2<720 and barrel_heat_2>360:
+                HP_2 = HP_2 - (barrel_heat_2-360)*4
+            if HP_2 >= 400:
+                barrel_heat_2 = barrel_heat_2 - 12
+            elif HP_2 < 400:
+                barrel_heat_2 = barrel_heat_2 - 24
+                
         space.step(1/TIME_STEP)
         clock.tick(TIME_STEP)
 
