@@ -16,7 +16,6 @@ width = int(round(x_outer))
 height = int(round(y_outer))
 hp1=100
 hp2=100
-
 f2 = 0.125 # factor to multiply by all dimensions given in rules manual
 x1 = (x_outer-8000*f2)/2# bottom left
 y1 = (y_outer-5000*f2)/2

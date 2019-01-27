@@ -1,11 +1,11 @@
 # Utility functions for the game server
-
 from pygame.locals import *
 from pygame.color import *
-from math import sqrt, sin, cos, tan
+from math import sqrt, sin, cos, tan, atan
 import numpy as np
 from random import randrange, gauss
 from collections import OrderedDict
+from pymunk import Vec2d
 import pygame
 import pymunk
 import pymunk.pygame_util
@@ -17,6 +17,8 @@ import array
 
 
 # Global Variables
+TIME_STEP = 60.0  # Step size for pymunk
+DURATION_OF_ROUND = 180 # In seconds
 REFILL_NUMBER_AT_A_TIME = 50
 REFILL_COEFF = 1
 REFILL_TRAVEL_COEFF = 1
@@ -26,16 +28,18 @@ DEFENSE_CHARGE_TIME_COEFF = 1
 DEFENSE_TRIGGERED_COEFF = 1
 DEFENSE_TRIGGERED_PUNISHMENT = 100
 SHOOT_HIT_COEFF = 1
+ENEMY_CHASE_COEFF = 1
+ENEMY_ESCAPE_COEFF = 1
 TICKS_LIMIT = 10800
-HEALTH_FREQUENCY = 6
+HEALTH_FREQUENCY = 10
 ENEMY_SEEN_REWARD = 1
+MAX_SHOOT_FREQUENCY = 10
+MAX_HIT_FREQUENCY = 10
 f=0.14
 y_outer=5000*f
 x_outer=8000*f
 width = int(round(x_outer))
 height = int(round(y_outer))
-INITIAL_STATE_1 = {'location_self': (500*f, 500*f), 'location_op': (7500*f, 4500*f), 'HP': 2000, 'defense': 0, 'barrel_heat': 0, 'projectiles_left': 40}
-INITIAL_STATE_2 = {'location_self': (7500*f, 4500*f), 'location_op': (500*f, 500*f), 'HP': 2000, 'defense': 0, 'barrel_heat': 0, 'projectiles_left': 40}
 projectiles = list()
 f2 = 0.125 # factor to multiply by all dimensions given in rules manual
 x1 = (x_outer-8000*f2)/2# bottom left
@@ -61,7 +65,7 @@ players = []
 
 player1_armors = []
 player1_body = pymunk.Body(500,pymunk.inf)
-player1_body.position = 300, 100
+player1_body.position = 500*f2, 500*f2
 player1_shape = pymunk.Circle(player1_body, (300*f2))
 player1_shape.elasticity = 0
 player1_shape.friction = 1.0
@@ -88,49 +92,51 @@ angle=0
 player1_shape7 = pymunk.Segment(player1_body,(0,0),(250*f2*cos(angle),250*f2*sin(angle)),3)
 player1_shape7.color = THECOLORS['blue']
 
-player.append(player1_body)
- #player 2
- player2_armors = []
- player2_body = pymunk.Body(500,pymunk.inf)
- player2_body.position = 500, 600
- player2_shape = pymunk.Circle(player2_body, (300*f2))
- player2_shape.elasticity = 0
- player2_shape.friction = 1.0
- player2_shape.color = THECOLORS['red']
- player2_shape.collision_type = collision_types["player2"]
- armor = pymunk.Segment(player2_body,(-300*f2,-65*f2),(-300*f2,65*f2),2)
- armor.color=THECOLORS['black']
- armor.collision_type = collision_types["armor2"]
- player2_armors.append(armor)
- armor = pymunk.Segment(player2_body,(-65*f2,-300*f2),(65*f2,-300*f2),2)
- armor.color=THECOLORS['black']
- armor.collision_type = collision_types["armor2"]
- player2_armors.append(armor)
- armor = pymunk.Segment(player2_body,(300*f2,-65*f2),(300*f2,65*f2),2)
- armor.color=THECOLORS['black']
- armor.collision_type = collision_types["armor2"]
- player2_armors.append(armor)
- armor = pymunk.Segment(player2_body,(-65*f2,300*f2),(65*f2,300*f2),2)
- armor.color=THECOLORS['black']
- armor.collision_type = collision_types["armor2"]
- player2_armors.append(armor)
- angle=0
- player2_shape7 = pymunk.Segment(player2_body,(0,0),(250*f2*cos(angle),250*f2*sin(angle)),3)
- player2_shape7.color = THECOLORS['blue']
- player.append(player2_body)
-#TODO Make a function to translate and rotate the bot from a start_pos and start_orientation to a final_post and final_orientation
+players.append(player1_body)
+#player 2
+player2_armors = []
+player2_body = pymunk.Body(500,pymunk.inf)
+player2_body.position = 7500*f2, 4500*f2
+player2_shape = pymunk.Circle(player2_body, (300*f2))
+player2_shape.elasticity = 0
+player2_shape.friction = 1.0
+player2_shape.color = THECOLORS['red']
+player2_shape.collision_type = collision_types["player2"]
+armor = pymunk.Segment(player2_body,(-300*f2,-65*f2),(-300*f2,65*f2),2)
+armor.color=THECOLORS['black']
+armor.collision_type = collision_types["armor2"]
+player2_armors.append(armor)
+armor = pymunk.Segment(player2_body,(-65*f2,-300*f2),(65*f2,-300*f2),2)
+armor.color=THECOLORS['black']
+armor.collision_type = collision_types["armor2"]
+player2_armors.append(armor)
+armor = pymunk.Segment(player2_body,(300*f2,-65*f2),(300*f2,65*f2),2)
+armor.color=THECOLORS['black']
+armor.collision_type = collision_types["armor2"]
+player2_armors.append(armor)
+armor = pymunk.Segment(player2_body,(-65*f2,300*f2),(65*f2,300*f2),2)
+armor.color=THECOLORS['black']
+armor.collision_type = collision_types["armor2"]
+player2_armors.append(armor)
+angle=0
+player2_shape7 = pymunk.Segment(player2_body,(0,0),(250*f2*cos(angle),250*f2*sin(angle)),3)
+player2_shape7.color = THECOLORS['blue']
+players.append(player2_body)
+INITIAL_STATE_1 = {'location_self': player1_body.position, 'location_op': player2_body.position, 'HP': 2000, 'defense': 0, 'barrel_heat': 0, 'projectiles_left': 40, 'defense_triggered': 0, 'armor_modules': None, 'time_since_last_shoot': 0, 'time_since_last_hit': 0}
+INITIAL_STATE_2 = {'location_self': player2_body.position, 'location_op': player1_body.position, 'HP': 2000, 'defense': 0, 'barrel_heat': 0, 'projectiles_left': 40, 'defense_triggered': 0, 'armor_modules': None, 'time_since_last_shoot': 0, 'time_since_last_hit': 0}
+
 def translate_player(linearspeed, direction, player):
     if player == 1:
-        player1_body.velocity=(linearspeed*direction)
+        player1_body.velocity=(linearspeed*cos(direction), linearspeed*sin(direction))
     elif player == 2:
-        player2_body.velocity=(linearspeed*direction)
+        player1_body.velocity=(linearspeed*cos(direction), linearspeed*sin(direction))
 def rotate_player(angularvelocity, player):
     if player == 1:
         player1_body.angular_velocity = angularvelocity    
     elif player == 2:
         player2_body.angular_velocity = angularvelocity    
 
-def spawn_ball(space, position, direction, speed): #TODO Make this function accept a speed of launch
+def spawn_ball(position, direction, speed): #TODO Make this function accept a speed of launch
     ball_body = pymunk.Body(1, pymunk.inf)
     ball_body.position = position
     
@@ -138,22 +144,18 @@ def spawn_ball(space, position, direction, speed): #TODO Make this function acce
     ball_shape.color =  THECOLORS["black"]
     ball_shape.elasticity = 1.0
     ball_shape.collision_type = collision_types["ball"]
-    ball_body.apply_impulse_at_local_point(Vec2d(direction))
+    ball_body.apply_impulse_at_local_point(pymunk.Vec2d(cos(direction), sin(direction)))
     
     #Keep ball velocity at a static value
     def constant_velocity(body, gravity, damping, dt):
         body.velocity = body.velocity.normalized() * speed
-    ball_body.velocity_func = constant_velocity     
-    space.add(ball_body, ball_shape)
-    projectiles.append(ball_shape)
-
-TIME_STEP = 60.0  # Step size for pymunk
-TICKS_LIMIT = 3000  # Max ticks to consider
+    ball_body.velocity_func = constant_velocity
+    return ball_body, ball_shape
 
 # Initialize space
 def setup_level(space):
-    obstacles = []
     #obstacle 1
+    obstacles = list()
     o1x =  x3 +1700*f2
     o1y =  y3 - 1125*f2 
     brick_body = pymunk.Body(body_type=pymunk.Body.STATIC)
@@ -297,11 +299,6 @@ def setup_level(space):
     space.add(start_lines2)
     return obstacles
 
-def don(s1, conn1):
-    s1.close()
-    conn1.close()
-    sys.exit()
-
 def draw_arrow(screen, position, angle):
     length = 100*f
     endpos_x = (position[0] + cos(angle) * length)
@@ -309,31 +306,15 @@ def draw_arrow(screen, position, angle):
     pygame.draw.line(
         screen, (50, 255, 50), (endpos_x, endpos_y), position, 3)
 
-#Implementation of line of sight
-def queryinfo():
-    p1=player_body.position
-    p2=player2_body.position
-    pt1=p1
-    pt2=p2
-    r0=350*f2
-    theta=math.atan((p2[1]-p1[1])/(p2[0]-p1[0]))
-    pt1[0]=p1[0]+r0*math.cos(theta)
-    pt1[1]=p1[1]+r0*math.sin(theta)
-    pt2[0]=p2[0]+r0*math.cos(theta)
-    pt2[0]=p2[0]+r0*math.sin(theta)
-    query = space.segment_query_first(pt1,pt2,1,pymunk.ShapeFilter())
-    if query:
-        print("my sight is blocked")
-    return query
-    #c_p=query.point
-    #line=pymunk.Segment(space.static_body,player_body.position,player2_body.position,1)
-    #line.sensor=True
-    #line.body.position=player_body.position
-    #space.add(line)
-
 # Parse the received action
 def tuplise(s):
-    return (round(float(s[0]), 4), round(float(s[1]), 4), round(float(s[2]), 4))
+    if(int(s[0]) == 1):
+        return (int(s[0]), round(float(s[1]), 4), round(float(s[2]), 4))
+    else:
+        return (int(s[0]), round(float(s[1]), 4), round(float(s[2]), 4), round(float(s[2]), 4))
+
+def dist(p1, p2):
+    return sqrt(pow(p1[0] - p2[0], 2) + pow(p1[1] - p2[1], 2))
 
 class BACKGROUND(pygame.sprite.Sprite):
 
