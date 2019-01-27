@@ -310,6 +310,7 @@ if __name__ == '__main__':
             action_2 = tuplise(a2.replace(" ", "").split(','))
 
         next_state_1, next_state_2, reward_1, reward_2 = play(space, next_state_1, action_1, next_state_2, action_2, score_1, score_2)
+        screen.fill(THECOLORS["lightgreen"])
         space.debug_draw(draw_options)
         if next_state_1["HP"] <= 0:
             winner = 2
