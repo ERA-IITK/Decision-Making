@@ -10,8 +10,8 @@ parser.add_argument('-p1', '--port1', dest="port1", type=int, default=12121, hel
 parser.add_argument('-p2', '--port2', dest="port2", type=int, default=34343, help='Port 2')
 parser.add_argument('-n', '--noise', dest="noise", type=int, default=1, help='Turn noise on/off')
 parser.add_argument('-rs', '--random-seed', dest="rng", type=int, default=0, help='Random Seed')
-parser.add_argument('-a1', '--agent-1-location', dest="a1", type=str, default='carrom_agent/start_agent.py', help='relative/full path to agent')
-parser.add_argument('-a2', '--agent-2-location', dest="a2", type=str, default='carrom_agent/start_agent.py', help='relative/full path to agent')
+parser.add_argument('-a1', '--agent-1-location', dest="a1", type=str, default='agent.py', help='relative/full path to agent')
+parser.add_argument('-a2', '--agent-2-location', dest="a2", type=str, default='agent.py', help='relative/full path to agent')
 
 args = parser.parse_args()
 port1 = args.port1
@@ -27,7 +27,7 @@ for i in range(0, args.num_experiments):
     try:
         if ne > 1:
             rng = i
-        cmd = 'python 1_player_server/start_server.py' + ' -n ' + str(noise) + ' -p1 ' + str(port1) + ' -p2 ' + str(port2) + ' -rs ' + str(rng+100000)
+        cmd = 'python server.py' + ' -n ' + str(noise) + ' -p1 ' + str(port1) + ' -p2 ' + str(port2) + ' -rs ' + str(rng+100000)
         print cmd
         p1 = subprocess.Popen(cmd.split(' '), shell=False)
         print 'Launched Server'

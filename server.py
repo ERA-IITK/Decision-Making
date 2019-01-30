@@ -1,4 +1,4 @@
-from Utils import *
+from environment import *
 from thread import *
 from math import pi
 from math import exp
@@ -34,6 +34,7 @@ timeout_msg = "TIMED OUT"
 timeout_period = 5
 num = args.num
 obstacles = list()
+projectiles = list()
 ##########################################################################
 
 def play(space, state_1, action_1, state_2, action_2, score_1, score_2):
@@ -281,10 +282,22 @@ if __name__ == '__main__':
     # Setup arena
     obstacles = setup_level(space)
     # Add player 1 to the arena (already initialized in Utils.py)
-    space.add(player1_body, player1_shape)
+    player1_body, player1_shape, player1_shooter, player1_armors = make_player(1)
+    player1_body.position = 500*f2, 500*f2
+    space.add(player1_body, player1_shape, player1_shooter)
+    for armor in player1_armors:
+        space.add(armor)
     # Add player 2 to the arena (already initialized in Utils.py)
-    space.add(player2_body, player2_shape)
+    player2_body, player2_shape, player2_shooter, player2_armors = make_player(2)
+    player2_body.position = 7500*f2, 4500*f2
+    space.add(player2_body, player2_shape, player2_shooter)
+    for armor in player2_armors:
+        space.add(armor)
     space.debug_draw(draw_options)
+    next_state_1['location_self'] = player1_body.position
+    next_state_1['location_op'] = player2_body.position
+    next_state_2['location_self'] = player2_body.position
+    next_state_2['location_op'] = player1_body.position
     it = 0
     while it < TIME_STEP*DURATION_OF_ROUND:  # Number of ticks in a single episode - 60fps in 180s
         print "Tick number: " + str(it+1)

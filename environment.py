@@ -16,7 +16,7 @@ import copy
 import array
 
 
-# Global Variables
+# Reward Coefficients
 TIME_STEP = 60.0  # Step size for pymunk
 DURATION_OF_ROUND = 180 # In seconds
 REFILL_NUMBER_AT_A_TIME = 50
@@ -35,12 +35,15 @@ HEALTH_FREQUENCY = 10
 ENEMY_SEEN_REWARD = 1
 MAX_SHOOT_FREQUENCY = 10
 MAX_HIT_FREQUENCY = 10
+INITIAL_STATE_1 = {'location_self': None, 'location_op': None, 'HP': 2000, 'defense': 0, 'barrel_heat': 0, 'projectiles_left': 40, 'defense_triggered': 0, 'armor_modules': None, 'time_since_last_shoot': 0, 'time_since_last_hit': 0}
+INITIAL_STATE_2 = {'location_self': None, 'location_op': None, 'HP': 2000, 'defense': 0, 'barrel_heat': 0, 'projectiles_left': 40, 'defense_triggered': 0, 'armor_modules': None, 'time_since_last_shoot': 0, 'time_since_last_hit': 0}
+
+# Arena parameters
 f=0.14
 y_outer=5000*f
 x_outer=8000*f
 width = int(round(x_outer))
 height = int(round(y_outer))
-projectiles = list()
 f2 = 0.125 # factor to multiply by all dimensions given in rules manual
 x1 = (x_outer-8000*f2)/2# bottom left
 y1 = (y_outer-5000*f2)/2
@@ -50,91 +53,51 @@ x3 = x1 #top left
 y3 = y1+5000*f2
 x4 = x2 #top right
 y4 = y3
-
 collision_types = {
     "ball": 1,
     "brick": 2,
-#    "bottom": 3,
-    "player": 3,
+    "player1": 3,
     "player2": 4,
     "armor1": 5,
     "armor2": 6
 }
-# player 1
-players = []
+players = dict()
 
-player1_armors = []
-player1_body = pymunk.Body(500,pymunk.inf)
-player1_body.position = 500*f2, 500*f2
-player1_shape = pymunk.Circle(player1_body, (300*f2))
-player1_shape.elasticity = 0
-player1_shape.friction = 1.0
-player1_shape.color = THECOLORS['red']
-player1_shape.collision_type = collision_types["player"]
-armor = pymunk.Segment(player1_body,(-300*f2,-65*f2),(-300*f2,65*f2),2)
-armor.color=THECOLORS['black']
-armor.collision_type = collision_types["armor1"]
-player1_armors.append(armor)
-armor = pymunk.Segment(player1_body,(-65*f2,-300*f2),(65*f2,-300*f2),2)
-armor.color=THECOLORS['black']
-armor.collision_type = collision_types["armor1"]
-player1_armors.append(armor)
-armor = pymunk.Segment(player1_body,(300*f2,-65*f2),(300*f2,65*f2),2)
-armor.color=THECOLORS['black']
-armor.collision_type = collision_types["armor1"]
-player1_armors.append(armor)
-armor = pymunk.Segment(player1_body,(-65*f2,300*f2),(65*f2,300*f2),2)
-armor.color=THECOLORS['black']
-armor.collision_type = collision_types["armor1"]
-player1_armors.append(armor)
-anglen=armor._get_normal
-angle=0
-player1_shape7 = pymunk.Segment(player1_body,(0,0),(250*f2*cos(angle),250*f2*sin(angle)),3)
-player1_shape7.color = THECOLORS['blue']
+def make_player(number):
+    player_armors = []
+    player_body = pymunk.Body(500,pymunk.inf)
+    player_shape = pymunk.Circle(player_body, (300*f2))
+    player_shape.elasticity = 0
+    player_shape.friction = 1.0
+    player_shape.color = THECOLORS['red']
+    player_shape.collision_type = collision_types["player"+str(number)]
+    armor = pymunk.Segment(player_body,(-300*f2, -65*f2),(-300*f2, 65*f2), 2)
+    armor.color=THECOLORS['black']
+    armor.collision_type = collision_types["armor"+str(number)]
+    player_armors.append(armor)
+    armor = pymunk.Segment(player_body,(-65*f2, -300*f2),(65*f2, -300*f2), 2)
+    armor.color=THECOLORS['black']
+    armor.collision_type = collision_types["armor"+str(number)]
+    player_armors.append(armor)
+    armor = pymunk.Segment(player_body,(300*f2, -65*f2),(300*f2, 65*f2), 2)
+    armor.color=THECOLORS['black']
+    armor.collision_type = collision_types["armor"+str(number)]
+    player_armors.append(armor)
+    armor = pymunk.Segment(player_body,(-65*f2, 300*f2),(65*f2, 300*f2), 2)
+    armor.color=THECOLORS['black']
+    armor.collision_type = collision_types["armor"+str(number)]
+    player_armors.append(armor)
+    shooter_shape = pymunk.Segment(player_body,(0,0),(250*f2,0),3)
+    shooter_shape.color = THECOLORS['blue']
+    players[str(number)] = player_body
+    return player_body, player_shape, shooter_shape, player_armors
 
-players.append(player1_body)
-#player 2
-player2_armors = []
-player2_body = pymunk.Body(500,pymunk.inf)
-player2_body.position = 7500*f2, 4500*f2
-player2_shape = pymunk.Circle(player2_body, (300*f2))
-player2_shape.elasticity = 0
-player2_shape.friction = 1.0
-player2_shape.color = THECOLORS['red']
-player2_shape.collision_type = collision_types["player2"]
-armor = pymunk.Segment(player2_body,(-300*f2,-65*f2),(-300*f2,65*f2),2)
-armor.color=THECOLORS['black']
-armor.collision_type = collision_types["armor2"]
-player2_armors.append(armor)
-armor = pymunk.Segment(player2_body,(-65*f2,-300*f2),(65*f2,-300*f2),2)
-armor.color=THECOLORS['black']
-armor.collision_type = collision_types["armor2"]
-player2_armors.append(armor)
-armor = pymunk.Segment(player2_body,(300*f2,-65*f2),(300*f2,65*f2),2)
-armor.color=THECOLORS['black']
-armor.collision_type = collision_types["armor2"]
-player2_armors.append(armor)
-armor = pymunk.Segment(player2_body,(-65*f2,300*f2),(65*f2,300*f2),2)
-armor.color=THECOLORS['black']
-armor.collision_type = collision_types["armor2"]
-player2_armors.append(armor)
-angle=0
-player2_shape7 = pymunk.Segment(player2_body,(0,0),(250*f2*cos(angle),250*f2*sin(angle)),3)
-player2_shape7.color = THECOLORS['blue']
-players.append(player2_body)
-INITIAL_STATE_1 = {'location_self': player1_body.position, 'location_op': player2_body.position, 'HP': 2000, 'defense': 0, 'barrel_heat': 0, 'projectiles_left': 40, 'defense_triggered': 0, 'armor_modules': None, 'time_since_last_shoot': 0, 'time_since_last_hit': 0}
-INITIAL_STATE_2 = {'location_self': player2_body.position, 'location_op': player1_body.position, 'HP': 2000, 'defense': 0, 'barrel_heat': 0, 'projectiles_left': 40, 'defense_triggered': 0, 'armor_modules': None, 'time_since_last_shoot': 0, 'time_since_last_hit': 0}
 
-def translate_player(linearspeed, direction, player):
-    if player == 1:
-        player1_body.velocity=(linearspeed*cos(direction), linearspeed*sin(direction))
-    elif player == 2:
-        player1_body.velocity=(linearspeed*cos(direction), linearspeed*sin(direction))
-def rotate_player(angularvelocity, player):
-    if player == 1:
-        player1_body.angular_velocity = angularvelocity    
-    elif player == 2:
-        player2_body.angular_velocity = angularvelocity    
+def translate_player(linearspeed, direction, number):
+    players[str(number)].velocity=(linearspeed*cos(direction), linearspeed*sin(direction))
+
+def rotate_player(angularvelocity, number):
+    players[str(number)].angular_velocity = angularvelocity    
 
 def spawn_ball(position, direction, speed): #TODO Make this function accept a speed of launch
     ball_body = pymunk.Body(1, pymunk.inf)
