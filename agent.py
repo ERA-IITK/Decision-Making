@@ -1,4 +1,5 @@
 from thread import *
+from environment import *
 import time
 import socket
 import sys
@@ -46,9 +47,9 @@ def agent_play(state):
     i = random.random()
     if str(state) != '':
         if i > 0 and state['projectiles_left'] > 0:
-            a = '1,' + str(random.randrange(-92, 92)) + ',' + str(random.randrange(1, 25))
+            a = '1,' + str(random.randrange(-1, 1)) + ',' + str(random.randrange(1, 2500)*f2)
         elif state['projectiles_left'] <= 0:
-            a = '2,' + str(3.5*float(random.randrange(0, 3)/3)) + ',' + str(random.randrange(-180, 180)) + ',' + str(random.randrange(-5, 5))
+            a = '2,' + str(f2*float(random.randrange(0, 300))) + ',' + str(random.randrange(-10, 10)) + ',' + str(random.randrange(-5, 5))
         else:
             a = '6'
 

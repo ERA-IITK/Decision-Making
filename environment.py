@@ -20,25 +20,23 @@ import array
 TIME_STEP = 60.0  # Step size for pymunk
 DURATION_OF_ROUND = 180 # In seconds
 REFILL_NUMBER_AT_A_TIME = 50
-REFILL_COEFF = 1
-REFILL_TRAVEL_COEFF = 1
-DEFENSE_TRAVEL_COEFF = 1
-DEFENSE_CHARGE_COEFF = 1
-DEFENSE_CHARGE_TIME_COEFF = 1
-DEFENSE_TRIGGERED_COEFF = 1
-DEFENSE_TRIGGERED_PUNISHMENT = 100
-SHOOT_HIT_COEFF = 1
-ENEMY_CHASE_COEFF = 1
-ENEMY_ESCAPE_COEFF = 1
 TICKS_LIMIT = 10800
 HEALTH_FREQUENCY = 10
-ENEMY_SEEN_REWARD = 1
 MAX_SHOOT_FREQUENCY = 10
 MAX_HIT_FREQUENCY = 10
-INITIAL_STATE_1 = {'location_self': None, 'location_op': None, 'HP': 2000, 'defense': 0, 'barrel_heat': 0, 'projectiles_left': 40, 'defense_triggered': 0, 'armor_modules': None, 'time_since_last_shoot': 0, 'time_since_last_hit': 0}
-INITIAL_STATE_2 = {'location_self': None, 'location_op': None, 'HP': 2000, 'defense': 0, 'barrel_heat': 0, 'projectiles_left': 40, 'defense_triggered': 0, 'armor_modules': None, 'time_since_last_shoot': 0, 'time_since_last_hit': 0}
+
+# Initial state
+INITIAL_STATE = {'location_self': None, 'location_op': None, 'HP': 2000, 'defense': 0, 'barrel_heat': 0, 'projectiles_left': 40, 'defense_triggered': 0, 'armor_modules': None, 'last_shoot_time': 0, 'last_hit_time': 0}
+
+# Initial location of bots (x, y)
+INITIAL_LOCATIONS = [(500, 500), (7500, 4500)]
+# Defense zones of each player (x1, x2, y1, y2)
+DEFENSE_ZONES = [(5800, 6800, 1250, 2250), (1200, 2200, 2750, 3750)]
+# Refill zones of each player (x1, x2, y1, y2)
+REFILL_ZONES = [(3500, 4500, 0, 1000), (3500, 4500, 4000, 5000)]
 
 # Arena parameters
+num_of_players = 2
 f=0.14
 y_outer=5000*f
 x_outer=8000*f
@@ -56,10 +54,10 @@ y4 = y3
 collision_types = {
     "ball": 1,
     "brick": 2,
-    "player1": 3,
-    "player2": 4,
-    "armor1": 5,
-    "armor2": 6
+    "player0": 3,
+    "player1": 4,
+    "armor0": 5,
+    "armor1": 6
 }
 players = dict()
 
@@ -101,7 +99,7 @@ def rotate_player(angularvelocity, number):
 
 def spawn_ball(position, direction, speed): #TODO Make this function accept a speed of launch
     ball_body = pymunk.Body(1, pymunk.inf)
-    ball_body.position = position
+    ball_body.position = position[0] + 305*f2*cos(direction), position[1] + 305*f2*sin(direction)
     
     ball_shape = pymunk.Circle(ball_body, 8.5*f2)
     ball_shape.color =  THECOLORS["black"]
@@ -261,6 +259,25 @@ def setup_level(space):
         line.sensor = True
     space.add(start_lines2)
     return obstacles
+
+def ball_brick_collision(arbiter, space, data):
+    ball_shape = arbiter.shapes[0]
+    space.remove(ball_shape, ball_shape.body)
+    return True
+
+def player_collision_handler_generator(num):
+    def player_collision_handler(arbiter, space, data):
+        players[num].velocity=(0,0)
+        players[num].angular_velocity = 0
+    return player_collision_handler
+
+def player_player_collision_handler_generator(num1, num2):
+    def player_player_collision_handler(arbiter, space, data):
+        players[num1].velocity=(0,0)
+        players[num1].angular_velocity = 0
+        players[num2].velocity=(0,0)
+        players[num2].angular_velocity = 0
+    return player_player_collision_handler
 
 def draw_arrow(screen, position, angle):
     length = 100*f
