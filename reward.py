@@ -17,6 +17,7 @@ ENEMY_SEEN_REWARD = 1
 
 def ball_armor_collision(playershoot, playerhit):
     if pygame.time.get_ticks() - state[playerhit]["last_hit_time"] > 1000/float(MAX_HIT_FREQUENCY):
+        print "HIT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! by " + str(playershoot)
         if state[playerhit]["defense"] > 0: #Within 30s of defense zone
             score[playershoot] += SHOOT_HIT_COEFF*25
         else:
@@ -24,12 +25,13 @@ def ball_armor_collision(playershoot, playerhit):
 
 def refill(player):
     if state[player]['location_self'][0] > REFILL_ZONES[player][0]*f2 and state[player]['location_self'][0] < REFILL_ZONES[player][1]*f2 and state[player]['location_self'][1] > REFILL_ZONES[player][2]*f2 and state[player]['location_self'][1] < REFILL_ZONES[player][3]*f:
+        print "SCORE INCREASING IN refill"
         score[player] = score[player] + REFILL_COEFF*(REFILL_NUMBER_AT_A_TIME - state[player]["projectiles_left"])
 
 def defense_triggered(player):
     if state[player]["defense_triggered"] > 2:
         score[player] = score[player] - DEFENSE_TRIGGERED_PUNISHMENT
-    elif state[player]["defense_triggered"] <= 2:
+    elif state[player]["defense_triggered"] <= 2 and state[player]["defense_triggered"] <= 2:
         score[player] = score[player] + (DEFENSE_TRIGGERED_COEFF*(state[player]["defense_triggered"]))
 
 def defense_charge(player):
@@ -48,7 +50,8 @@ def line_of_sight(space, player1, player2):
     pt2[0] = p2[0]+r0*cos(theta)
     pt2[1] = p2[1]+r0*sin(theta)
     query = space.segment_query_first(pt1, pt2, 1, pymunk.ShapeFilter())
-    if query != None:
+    if query == None:
+        print "SCORE INCREASING IN line_of_sight"
         score[player1] = score[player1] + ENEMY_SEEN_REWARD*10
 
 def calculate_reward(space, player):
@@ -59,4 +62,5 @@ def calculate_reward(space, player):
     for i in range(0, num_of_players):
         if i != player:
             line_of_sight(space, player, i)
+    print "Reward for " + str(player) + " = " + str(score[player]-prevscore)
     return score[player]-prevscore

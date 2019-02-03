@@ -18,7 +18,7 @@ import array
 
 # Reward Coefficients
 TIME_STEP = 60.0  # Step size for pymunk
-DURATION_OF_ROUND = 180 # In seconds
+DURATION_OF_ROUND =  10 # In seconds
 REFILL_NUMBER_AT_A_TIME = 50
 TICKS_LIMIT = 10800
 HEALTH_FREQUENCY = 10
@@ -51,6 +51,7 @@ x3 = x1 #top left
 y3 = y1+5000*f2
 x4 = x2 #top right
 y4 = y3
+offsets = [x1, x2, y1, y3]
 collision_types = {
     "ball": 1,
     "brick": 2,
@@ -267,16 +268,16 @@ def ball_brick_collision(arbiter, space, data):
 
 def player_collision_handler_generator(num):
     def player_collision_handler(arbiter, space, data):
-        players[num].velocity=(0,0)
-        players[num].angular_velocity = 0
+        players[str(num)].velocity=(0,0)
+        players[str(num)].angular_velocity = 0
     return player_collision_handler
 
 def player_player_collision_handler_generator(num1, num2):
     def player_player_collision_handler(arbiter, space, data):
-        players[num1].velocity=(0,0)
-        players[num1].angular_velocity = 0
-        players[num2].velocity=(0,0)
-        players[num2].angular_velocity = 0
+        players[str(num1)].velocity=(0,0)
+        players[str(num1)].angular_velocity = 0
+        players[str(num2)].velocity=(0,0)
+        players[str(num2)].angular_velocity = 0
     return player_player_collision_handler
 
 def draw_arrow(screen, position, angle):

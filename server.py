@@ -16,7 +16,7 @@ parser.add_argument('-p1', '--port1', dest="port1", type=int, default=12121, hel
 parser.add_argument('-p2', '--port2', dest="port2", type=int, default=34343, help='Port for opponent player')
 parser.add_argument('-rs', '--random-seed', dest="rng", type=int, default=0, help='Random Seed')
 parser.add_argument('-n', '--noise', dest="noise", type=int, default=1, help='Turn noise on/off')
-parser.add_argument('-num', '--number', dest="num", type=int, default=1, help="Number of rounds to be played between the AI robots")
+parser.add_argument('-num', '--number', dest="num", type=int, default=2, help="Number of rounds to be played between the AI robots")
 args = parser.parse_args()
 ports = [0]*num_of_players
 ports[0] = args.port1
@@ -144,131 +144,129 @@ if __name__ == '__main__':
     space = pymunk.Space(threaded=True)
     draw_options = pymunk.pygame_util.DrawOptions(screen) 
     screen.fill(THECOLORS["lightgreen"])
-
-    reward = [0]*num_of_players
-    for i in range(0, num_of_players):
-        state[i] = dict(INITIAL_STATE)
-    # Setup arena
     obstacles = setup_level(space)
     armor_sets = [None]*num_of_players
     for i in range(0, num_of_players):
+        score[i] = 0
+        state[i] = dict(INITIAL_STATE)
+    for i in range(0, num_of_players):
         player_body, player_shape, player_shooter, player_armors = make_player(i)
-        player_body.position = INITIAL_LOCATIONS[i][0]*f2, INITIAL_LOCATIONS[i][1]*f2
+        player_body.position = x1 + INITIAL_LOCATIONS[i][0]*f2, y1 + INITIAL_LOCATIONS[i][1]*f2
         space.add(player_body, player_shape, player_shooter)
         armor_sets[i] = player_armors
         for armor in player_armors:
             space.add(armor)
-        state[i]['location_self'] = player_body.position
-        state[i]['location_op'] = player_body.position
-
+    
     h = space.add_collision_handler(collision_types["ball"], collision_types["brick"])
     h.begin = ball_brick_collision
-
     h = space.add_collision_handler(collision_types["ball"], collision_types["armor1"])
-    h.begin = ball_armor_collision_handler_generator(2, 1)
-    h.separate = player_collision_handler_generator(2)
-    
-    h = space.add_collision_handler(collision_types["ball"], collision_types["armor0"])
-    h.begin = ball_armor_collision_handler_generator(1, 2)
+    h.begin = ball_armor_collision_handler_generator(1, 0)
     h.separate = player_collision_handler_generator(1)
-
+    h = space.add_collision_handler(collision_types["ball"], collision_types["armor0"])
+    h.begin = ball_armor_collision_handler_generator(0, 1)
+    h.separate = player_collision_handler_generator(0)
     h = space.add_collision_handler(collision_types["ball"],  collision_types["player1"])
     h.begin = ball_brick_collision
-    h.separate = player_collision_handler_generator(2)
-
+    h.separate = player_collision_handler_generator(1)
     h = space.add_collision_handler(collision_types["ball"],  collision_types["player0"])
     h.begin = ball_brick_collision
-    h.separate = player_collision_handler_generator(1)
-
+    h.separate = player_collision_handler_generator(0)
     h = space.add_collision_handler(collision_types["player0"], collision_types["player1"])
-    h.separate = player_player_collision_handler_generator(1, 2)
-
+    h.separate = player_player_collision_handler_generator(0, 1)
     h = space.add_collision_handler(collision_types["player0"], collision_types["armor1"])
-    h.separate = player_player_collision_handler_generator(1, 2)
-
+    h.separate = player_player_collision_handler_generator(0, 1)
     h = space.add_collision_handler(collision_types["player1"], collision_types["armor0"])
-    h.separate = player_player_collision_handler_generator(1, 2)
-
+    h.separate = player_player_collision_handler_generator(0, 1)
     h = space.add_collision_handler(collision_types["armor0"], collision_types["armor1"])
-    h.separate = player_player_collision_handler_generator(1, 2)
-
+    h.separate = player_player_collision_handler_generator(0, 1)
     h = space.add_collision_handler(collision_types["player0"], collision_types["brick"])
-    h.separate = player_collision_handler_generator(1)
-
+    h.separate = player_collision_handler_generator(0)
     h = space.add_collision_handler(collision_types["player1"], collision_types["brick"])
-    h.separate = player_collision_handler_generator(2)
-
-    h = space.add_collision_handler(collision_types["armor0"], collision_types["brick"])
     h.separate = player_collision_handler_generator(1)
-
+    h = space.add_collision_handler(collision_types["armor0"], collision_types["brick"])
+    h.separate = player_collision_handler_generator(0)
     h = space.add_collision_handler(collision_types["armor1"], collision_types["brick"])
-    h.separate = player_collision_handler_generator(2)
-
-    space.debug_draw(draw_options)
-    it = 0
-    while it < TIME_STEP*DURATION_OF_ROUND:  # Number of ticks in a single episode - 60fps in 180s
-        print "Tick number: " + str(it+1)
-        it += 1
-        action = [None]*num_of_players
+    h.separate = player_collision_handler_generator(1)
+    for i in range(0, num):
+        reward = [0]*num_of_players
         for i in range(0, num_of_players):
-            send_state(str(state[i]) + ";REWARD" + str(reward[i]), conn[i])
-            a = request_action(conn[i])
-            if not a:  # response empty player 1
-                print "No response from player " + str(i)
-                sys.exit()
-            elif a == timeout_msg:
-                print "Timeout from player " + str(i)
-                sys.exit()
-            else:
-                action[i] = tuplise(a.replace(" ", "").split(','))
-        play(space, action)
-        screen.fill(THECOLORS["lightgreen"])
-        space.debug_draw(draw_options)
-        
+            score[i] = 0
+            state[i] = dict(INITIAL_STATE)
+        # Setup arena
         for i in range(0, num_of_players):
-            reward[i] = calculate_reward(space, i)
-            if state[i]["barrel_heat"] < 0:
-                state[i]["barrel_heat"] = 0
-            if state[i]["barrel_heat"] >= 720:
-                state[i]["HP"] = state[i]["HP"] - (state[i]["barrel_heat"]-720)*40
-            if it%(TIME_STEP/HEALTH_FREQUENCY) == 0:
-                if state[i]["barrel_heat"]<720 and state[i]["barrel_heat"]>360:
-                    state[i]["HP"] = state[i]["HP"] - (state[i]["barrel_heat"]-360)*4
-            if state[i]["HP"] >= 400 and state[i]["barrel_heat"] > 0:
-                state[i]["barrel_heat"] = state[i]["barrel_heat"] - 12
-            elif state[i]["HP"] < 400 and state[i]["HP"] > 0 and state[i]["barrel_heat"] > 0:
-                state[i]["barrel_heat"] = state[i]["barrel_heat"] - 24
-            if state[i]["defense"] > 0:
-                state[i]["defense"] = state[i]["defense"] - (1/TIME_STEP)
-            if (1/TIME_STEP) - state[i]["defense"] > 0:
-                state[i]["defense"] = 0            
-            if state[i]["HP"] <= 0:
-                break
+            players[str(i)].velocity = (0, 0)
+            players[str(i)].position = offsets[0] + INITIAL_LOCATIONS[i][0]*f2, offsets[2] + INITIAL_LOCATIONS[i][1]*f2
             state[i]['location_self'] = players[str(i)].position
-            for j in range(i+1, num_of_players):
-                p1 = state[i]['location_self']
-                p2 = state[j]['location_self']
-                pt1 = state[i]['location_self']
-                pt2 = state[j]['location_self']
-                r0=350*f2
-                theta = atan((p2[1]-p1[1])/(p2[0]-p1[0]))
-                pt1[0] = p1[0]+r0*cos(theta)
-                pt1[1] = p1[1]+r0*sin(theta)
-                pt2[0] = p2[0]+r0*cos(theta)
-                pt2[1] = p2[1]+r0*sin(theta)
-                query = space.segment_query_first(pt1, pt2, 1, pymunk.ShapeFilter())
-                if query.shape == None:
-                    state[i]["armor_modules"] = armor_sets[j]
-                    state[j]["armor_modules"] = armor_sets[i]
-                    state[i]["location_op"] = state[j]["location_self"]
-                    state[j]["location_op"] = state[i]["location_self"]
+
+        space.debug_draw(draw_options)
+        it = 0
+        while it < TIME_STEP*DURATION_OF_ROUND:  # Number of ticks in a single episode - 60fps in 180s
+            print "Tick number: " + str(it+1)
+            it += 1
+            action = [None]*num_of_players
+            for i in range(0, num_of_players):
+                send_state(str(state[i]) + ";REWARD" + str(reward[i]), conn[i])
+                a = request_action(conn[i])
+                if not a:  # response empty player 1
+                    print "No response from player " + str(i)
+                    sys.exit()
+                elif a == timeout_msg:
+                    print "Timeout from player " + str(i)
+                    sys.exit()
                 else:
-                    state[i]["armor_modules"] = None
-                    state[j]["armor_modules"] = None
-                    state[i]["location_op"] = None
-                    state[j]["location_op"] = None
-                
-        #TODO add reset defense_triggered to 0 every 1 minute 
-        space.step(1/TIME_STEP)
-        clock.tick(TIME_STEP)
+                    action[i] = tuplise(a.replace(" ", "").split(','))
+            play(space, action)
+            screen.fill(THECOLORS["lightgreen"])
+            space.debug_draw(draw_options)
+            game_over = False
+            for i in range(0, num_of_players):
+                if state[i]["barrel_heat"] < 0:
+                    state[i]["barrel_heat"] = 0
+                if state[i]["barrel_heat"] >= 720:
+                    state[i]["HP"] = state[i]["HP"] - (state[i]["barrel_heat"]-720)*40
+                if it%(TIME_STEP/HEALTH_FREQUENCY) == 0:
+                    if state[i]["barrel_heat"]<720 and state[i]["barrel_heat"]>360:
+                        state[i]["HP"] = state[i]["HP"] - (state[i]["barrel_heat"]-360)*4
+                if state[i]["HP"] >= 400 and state[i]["barrel_heat"] > 0:
+                    state[i]["barrel_heat"] = state[i]["barrel_heat"] - 12
+                elif state[i]["HP"] < 400 and state[i]["HP"] > 0 and state[i]["barrel_heat"] > 0:
+                    state[i]["barrel_heat"] = state[i]["barrel_heat"] - 24
+                if state[i]["defense"] > 0:
+                    state[i]["defense"] = state[i]["defense"] - (1/TIME_STEP)
+                if (1/TIME_STEP) - state[i]["defense"] > 0:
+                    state[i]["defense"] = 0            
+                if state[i]["HP"] <= 0:
+                    game_over = True
+                    break
+                reward[i] = calculate_reward(space, i)
+                state[i]['location_self'] = players[str(i)].position
+                for j in range(i+1, num_of_players):
+                    p1 = state[i]['location_self']
+                    p2 = state[j]['location_self']
+                    pt1 = state[i]['location_self']
+                    pt2 = state[j]['location_self']
+                    r0=350*f2
+                    theta = atan((p2[1]-p1[1])/(p2[0]-p1[0]))
+                    pt1[0] = p1[0]+r0*cos(theta)
+                    pt1[1] = p1[1]+r0*sin(theta)
+                    pt2[0] = p2[0]+r0*cos(theta)
+                    pt2[1] = p2[1]+r0*sin(theta)
+                    query = space.segment_query_first(pt1, pt2, 1, pymunk.ShapeFilter())
+                    if query.shape == None:
+                        state[i]["armor_modules"] = armor_sets[j]
+                        state[j]["armor_modules"] = armor_sets[i]
+                        state[i]["location_op"] = state[j]["location_self"]
+                        state[j]["location_op"] = state[i]["location_self"]
+                    else:
+                        state[i]["armor_modules"] = None
+                        state[j]["armor_modules"] = None
+                        state[i]["location_op"] = None
+                        state[j]["location_op"] = None
+            if game_over:
+                break        
+            if it/TIME_STEP >= 60:
+                for i in range(0, num_of_players):
+                    state[i]["defense_triggered"] = 0
+            space.step(1/TIME_STEP)
+            clock.tick(TIME_STEP)
     sys.exit()
