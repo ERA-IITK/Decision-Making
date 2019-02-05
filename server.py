@@ -1,12 +1,13 @@
 from environment import *
 from thread import *
 from math import pi
-from math import exp
 import time
 import sys
 import os
 import argparse
 import socket
+import random
+import shutil
 from reward import *
 
 start_time = time.time()
@@ -46,6 +47,14 @@ def play(space, action):
     print 'action_2: ' + str(action[1])
     print 'score_1: ' + str(score[0])
     print 'score_2: ' + str(score[1])
+    with open("log.txt", 'a+') as f:
+        f.write(str(pygame.time.get_ticks()) + '\n')
+        f.write('state_1: ' + str(state[0]) + '\n')
+        f.write('state_2: ' + str(state[1]) + '\n')
+        f.write('action_1: ' + str(action[0]) + '\n')
+        f.write('action_2: ' + str(action[1]) + '\n')
+        f.write('score_1: ' + str(score[0]) + '\n')
+        f.write('score_2: ' + str(score[1]) + '\n')
     # 1 - Shoot action = {action_type, yaw, speed}
     # 2 - Chase action = {action_type, speed, direction, angularvelocity} Cover even rotating in a given position in order to be able to shoot
     # 3 - Refill action = {action_type, speed, direction, angularvelocity} Position of the refill zone and the best orientation of the robot
@@ -54,7 +63,7 @@ def play(space, action):
     # 6 - Roam action = {action_type}
     for i in range(0, num_of_players):
         if action[i][0] == 1 and float(pygame.time.get_ticks() - state[i]["last_shoot_time"]) > 1000/float(MAX_SHOOT_FREQUENCY): #Shoot
-            ball_body, ball_shape = spawn_ball(state[i]["location_self"], action[i][1], action[i][2])
+            ball_body, ball_shape = spawn_ball(space, state[i]["location_self"], action[i][1], action[i][2]*100*f2, state[i]["angle_self"], i)
             space.add(ball_body, ball_shape)
             state[i]["barrel_heat"] = state[i]["barrel_heat"] + action[i][2]
             state[i]["projectiles_left"] = state[i]["projectiles_left"] - 1
@@ -106,11 +115,12 @@ def send_state(state, conn):
     return True
 
 def ball_armor_collision_handler_generator(player1, player2):
-    def ball_armor_collision(arbiter, space, data):
+    def ball_armor_collision_handler(arbiter, space, data):
         ball_shape = arbiter.shapes[0]
         armor_shape = arbiter.shapes[1]
         space.remove(ball_shape, ball_shape.body)
-        if state[player1]["last_hit_time"] - pygame.time.get_ticks() > 1000/float(MAX_HIT_FREQUENCY):
+        if (state[player1]["last_hit_time"] - pygame.time.get_ticks()) > 1000/float(MAX_HIT_FREQUENCY):
+            print "-------------------Hit " + str(player1)
             if state[player1]["last_hit_time"] > 0: #Within 30s of defense zone
                 state[player1]["HP"] -= 25
             else:
@@ -118,7 +128,7 @@ def ball_armor_collision_handler_generator(player1, player2):
             state[player1]["last_hit_time"] = pygame.time.get_ticks()
             ball_armor_collision(player2, player1)
         return True
-    return ball_armor_collision
+    return ball_armor_collision_handler
 
 if __name__ == '__main__':
 
@@ -151,7 +161,7 @@ if __name__ == '__main__':
         state[i] = dict(INITIAL_STATE)
     for i in range(0, num_of_players):
         player_body, player_shape, player_shooter, player_armors = make_player(i)
-        player_body.position = x1 + INITIAL_LOCATIONS[i][0]*f2, y1 + INITIAL_LOCATIONS[i][1]*f2
+        player_body.position = x1 + int(random.random()*8000)*f2, y1 + int(random.random()*5000)*f2
         space.add(player_body, player_shape, player_shooter)
         armor_sets[i] = player_armors
         for armor in player_armors:
@@ -195,12 +205,16 @@ if __name__ == '__main__':
         # Setup arena
         for i in range(0, num_of_players):
             players[str(i)].velocity = (0, 0)
-            players[str(i)].position = offsets[0] + INITIAL_LOCATIONS[i][0]*f2, offsets[2] + INITIAL_LOCATIONS[i][1]*f2
+            players[str(i)].position = x1 + int(random.random()*8000)*f2, y1 + int(random.random()*5000)*f2
             state[i]['location_self'] = players[str(i)].position
+            state[i]['angle_self'] = players[str(i)].angle
 
         space.debug_draw(draw_options)
         it = 0
         while it < TIME_STEP*DURATION_OF_ROUND:  # Number of ticks in a single episode - 60fps in 180s
+            print '--------------------'
+            print '--------------------'
+            print '--------------------'
             print "Tick number: " + str(it+1)
             it += 1
             action = [None]*num_of_players
@@ -222,11 +236,11 @@ if __name__ == '__main__':
             for i in range(0, num_of_players):
                 if state[i]["barrel_heat"] < 0:
                     state[i]["barrel_heat"] = 0
-                if state[i]["barrel_heat"] >= 720:
-                    state[i]["HP"] = state[i]["HP"] - (state[i]["barrel_heat"]-720)*40
-                if it%(TIME_STEP/HEALTH_FREQUENCY) == 0:
-                    if state[i]["barrel_heat"]<720 and state[i]["barrel_heat"]>360:
-                        state[i]["HP"] = state[i]["HP"] - (state[i]["barrel_heat"]-360)*4
+                # if state[i]["barrel_heat"] >= 720:
+                #     state[i]["HP"] = state[i]["HP"] - (state[i]["barrel_heat"]-720)*40
+                # if it%(TIME_STEP/HEALTH_FREQUENCY) == 0:
+                #     if state[i]["barrel_heat"]<720 and state[i]["barrel_heat"]>360:
+                #         state[i]["HP"] = state[i]["HP"] - (state[i]["barrel_heat"]-360)*4
                 if state[i]["HP"] >= 400 and state[i]["barrel_heat"] > 0:
                     state[i]["barrel_heat"] = state[i]["barrel_heat"] - 12
                 elif state[i]["HP"] < 400 and state[i]["HP"] > 0 and state[i]["barrel_heat"] > 0:
@@ -252,7 +266,7 @@ if __name__ == '__main__':
                     pt2[0] = p2[0]+r0*cos(theta)
                     pt2[1] = p2[1]+r0*sin(theta)
                     query = space.segment_query_first(pt1, pt2, 1, pymunk.ShapeFilter())
-                    if query.shape == None:
+                    if query == None or query.shape == None:
                         state[i]["armor_modules"] = armor_sets[j]
                         state[j]["armor_modules"] = armor_sets[i]
                         state[i]["location_op"] = state[j]["location_self"]
@@ -269,4 +283,5 @@ if __name__ == '__main__':
                     state[i]["defense_triggered"] = 0
             space.step(1/TIME_STEP)
             clock.tick(TIME_STEP)
+        os.rename('log.txt', 'log_'+str(int(time.time())) +'.txt')
     sys.exit()

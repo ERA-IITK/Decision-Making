@@ -1,5 +1,6 @@
 import pygame
 from environment import *
+from math import exp
 score = [0]*num_of_players
 state = [None]*num_of_players
 
@@ -50,7 +51,7 @@ def line_of_sight(space, player1, player2):
     pt2[0] = p2[0]+r0*cos(theta)
     pt2[1] = p2[1]+r0*sin(theta)
     query = space.segment_query_first(pt1, pt2, 1, pymunk.ShapeFilter())
-    if query == None:
+    if query == None or query.shape == None:
         print "SCORE INCREASING IN line_of_sight"
         score[player1] = score[player1] + ENEMY_SEEN_REWARD*10
 

@@ -1,7 +1,7 @@
 # Utility functions for the game server
 from pygame.locals import *
 from pygame.color import *
-from math import sqrt, sin, cos, tan, atan
+from math import sqrt, sin, cos, tan, atan, radians
 import numpy as np
 from random import randrange, gauss
 from collections import OrderedDict
@@ -14,7 +14,7 @@ import sys
 import os
 import copy
 import array
-
+import numpy
 
 # Reward Coefficients
 TIME_STEP = 60.0  # Step size for pymunk
@@ -26,7 +26,7 @@ MAX_SHOOT_FREQUENCY = 10
 MAX_HIT_FREQUENCY = 10
 
 # Initial state
-INITIAL_STATE = {'location_self': None, 'location_op': None, 'HP': 2000, 'defense': 0, 'barrel_heat': 0, 'projectiles_left': 40, 'defense_triggered': 0, 'armor_modules': None, 'last_shoot_time': 0, 'last_hit_time': 0}
+INITIAL_STATE = {'location_self': None, 'angle_self': 0, 'location_op': None, 'angle_op': 0, 'HP': 2000, 'defense': 0, 'barrel_heat': 0, 'projectiles_left': 40, 'defense_triggered': 0, 'armor_modules': None, 'last_shoot_time': 0, 'last_hit_time': 0}
 
 # Initial location of bots (x, y)
 INITIAL_LOCATIONS = [(500, 500), (7500, 4500)]
@@ -61,7 +61,7 @@ collision_types = {
     "armor1": 6
 }
 players = dict()
-
+barrels = dict()
 def make_player(number):
     player_armors = []
     player_body = pymunk.Body(500,pymunk.inf)
@@ -70,25 +70,26 @@ def make_player(number):
     player_shape.friction = 1.0
     player_shape.color = THECOLORS['red']
     player_shape.collision_type = collision_types["player"+str(number)]
-    armor = pymunk.Segment(player_body,(-300*f2, -65*f2),(-300*f2, 65*f2), 2)
+    armor = pymunk.Segment(player_body,(-300*f2, -65*f2),(-300*f2, 65*f2), 0)
     armor.color=THECOLORS['black']
     armor.collision_type = collision_types["armor"+str(number)]
     player_armors.append(armor)
-    armor = pymunk.Segment(player_body,(-65*f2, -300*f2),(65*f2, -300*f2), 2)
+    armor = pymunk.Segment(player_body,(-65*f2, -300*f2),(65*f2, -300*f2), 0)
     armor.color=THECOLORS['black']
     armor.collision_type = collision_types["armor"+str(number)]
     player_armors.append(armor)
-    armor = pymunk.Segment(player_body,(300*f2, -65*f2),(300*f2, 65*f2), 2)
+    armor = pymunk.Segment(player_body,(300*f2, -65*f2),(300*f2, 65*f2), 0)
     armor.color=THECOLORS['black']
     armor.collision_type = collision_types["armor"+str(number)]
     player_armors.append(armor)
-    armor = pymunk.Segment(player_body,(-65*f2, 300*f2),(65*f2, 300*f2), 2)
+    armor = pymunk.Segment(player_body,(-65*f2, 300*f2),(65*f2, 300*f2), 0)
     armor.color=THECOLORS['black']
     armor.collision_type = collision_types["armor"+str(number)]
     player_armors.append(armor)
-    shooter_shape = pymunk.Segment(player_body,(0,0),(250*f2,0),3)
+    shooter_shape = pymunk.Segment(player_body,(0,0),(0,250*f2),3)
     shooter_shape.color = THECOLORS['blue']
     players[str(number)] = player_body
+    barrels[str(number)] = shooter_shape
     return player_body, player_shape, shooter_shape, player_armors
 
 
@@ -98,15 +99,28 @@ def translate_player(linearspeed, direction, number):
 def rotate_player(angularvelocity, number):
     players[str(number)].angular_velocity = angularvelocity    
 
-def spawn_ball(position, direction, speed): #TODO Make this function accept a speed of launch
+
+def spawn_ball(space, position, direction, speed, angle, number): #TODO Make this function accept a speed of launch
     ball_body = pymunk.Body(1, pymunk.inf)
-    ball_body.position = position[0] + 305*f2*cos(direction), position[1] + 305*f2*sin(direction)
-    
+    offset_x = 250*f2*cos(radians(direction+angle))
+    angle_to_check = int(direction+angle)%360
+    if angle_to_check > 90 or angle_to_check < -90:
+        offset_x = -1*offset_x
+    offset_y = 250*f2*sin(radians(direction+angle))
+    if angle_to_check > 180 or angle_to_check < 0:
+        offset_x = -1*offset_y    
+    print "offset_x="+str(offset_x)+", offset_y="+str(offset_y)
+    space.remove(barrels[str(number)])
+    shooter_shape = pymunk.Segment(players[str(number)], (0,0), (offset_x, offset_y), 3)
+    shooter_shape.color = THECOLORS['blue']
+    space.add(shooter_shape)
+    barrels[str(number)] = shooter_shape
+    ball_body.position = position[0] + offset_x, position[1] + offset_y
     ball_shape = pymunk.Circle(ball_body, 8.5*f2)
     ball_shape.color =  THECOLORS["black"]
     ball_shape.elasticity = 1.0
     ball_shape.collision_type = collision_types["ball"]
-    ball_body.apply_impulse_at_local_point(pymunk.Vec2d(cos(direction), sin(direction)))
+    ball_body.apply_impulse_at_local_point(pymunk.Vec2d(cos(radians(direction+angle)), sin(radians(direction+angle))))
     
     #Keep ball velocity at a static value
     def constant_velocity(body, gravity, damping, dt):
@@ -118,7 +132,7 @@ def spawn_ball(position, direction, speed): #TODO Make this function accept a sp
 def setup_level(space):
     #obstacle 1
     obstacles = list()
-    o1x =  x3 +1700*f2
+    o1x =  x3 + 1700*f2
     o1y =  y3 - 1125*f2 
     brick_body = pymunk.Body(body_type=pymunk.Body.STATIC)
     brick_body.position = o1x, o1y
@@ -292,7 +306,7 @@ def tuplise(s):
     if(int(s[0]) == 1):
         return (int(s[0]), round(float(s[1]), 4), round(float(s[2]), 4))
     else:
-        return (int(s[0]), round(float(s[1]), 4), round(float(s[2]), 4), round(float(s[2]), 4))
+        return (int(s[0]), round(float(s[1]), 4), round(float(s[2]), 4), round(float(s[3]), 4))
 
 def dist(p1, p2):
     return sqrt(pow(p1[0] - p2[0], 2) + pow(p1[1] - p2[1], 2))
