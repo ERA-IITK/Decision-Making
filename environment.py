@@ -65,7 +65,7 @@ barrels = dict()
 def make_player(number):
     player_armors = []
     player_body = pymunk.Body(500,pymunk.inf)
-    player_shape = pymunk.Circle(player_body, (300*f2))
+    player_shape = pymunk.Poly.create_box(player_body, (600*f2,600*f2))
     player_shape.elasticity = 0
     player_shape.friction = 1.0
     player_shape.color = THECOLORS['red']
@@ -102,23 +102,24 @@ def rotate_player(angularvelocity, number):
 
 def spawn_ball(space, position, direction, speed, angle, number): #TODO Make this function accept a speed of launch
     ball_body = pymunk.Body(1, pymunk.inf)
-    offset_x = 250*f2*cos(radians(direction+angle))
-    angle_to_check = int(direction+angle)%360
-    if angle_to_check > 90 or angle_to_check < -90:
-        offset_x = -1*offset_x
-    offset_y = 250*f2*sin(radians(direction+angle))
-    if angle_to_check > 180 or angle_to_check < 0:
-        offset_x = -1*offset_y    
-    print "offset_x="+str(offset_x)+", offset_y="+str(offset_y)
-    space.remove(barrels[str(number)])
-    shooter_shape = pymunk.Segment(players[str(number)], (0,0), (offset_x, offset_y), 3)
-    shooter_shape.color = THECOLORS['blue']
-    space.add(shooter_shape)
-    barrels[str(number)] = shooter_shape
-    ball_body.position = position[0] + offset_x, position[1] + offset_y
-    ball_shape = pymunk.Circle(ball_body, 8.5*f2)
+    # offset_x = 250*f2*cos(radians(direction+angle))
+    # angle_to_check = int(direction+angle)%360
+    # if angle_to_check > 90 or angle_to_check < -90:
+    #     offset_x = -1*offset_x
+    # offset_y = 250*f2*sin(radians(direction+angle))
+    # if angle_to_check > 180 or angle_to_check < 0:
+    #     offset_x = -1*offset_y    
+    # print "offset_x="+str(offset_x)+", offset_y="+str(offset_y)
+    # space.remove(barrels[str(number)])
+    # shooter_shape = pymunk.Segment(players[str(number)], (0,0), (offset_x, offset_y), 3)
+    # shooter_shape.color = THECOLORS['blue']
+    # space.add(shooter_shape)
+    # barrels[str(number)] = shooter_shape
+    ball_body.position = position + (340*f2*cos(radians(direction+angle)),340*f2*sin(radians(direction+angle)))
+    ball_shape = pymunk.Circle(ball_body, 20*f2)
     ball_shape.color =  THECOLORS["black"]
     ball_shape.elasticity = 1.0
+    ball_shape._set_friction =1.0
     ball_shape.collision_type = collision_types["ball"]
     ball_body.apply_impulse_at_local_point(pymunk.Vec2d(cos(radians(direction+angle)), sin(radians(direction+angle))))
     
@@ -126,7 +127,7 @@ def spawn_ball(space, position, direction, speed, angle, number): #TODO Make thi
     def constant_velocity(body, gravity, damping, dt):
         body.velocity = body.velocity.normalized() * speed
     ball_body.velocity_func = constant_velocity
-    return ball_body, ball_shape
+    space.add(ball_body, ball_shape)
 
 # Initialize space
 def setup_level(space):

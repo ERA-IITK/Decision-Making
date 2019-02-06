@@ -1,6 +1,6 @@
 from environment import *
 from thread import *
-from math import pi
+from math import pi, degrees
 import time
 import sys
 import os
@@ -63,8 +63,7 @@ def play(space, action):
     # 6 - Roam action = {action_type}
     for i in range(0, num_of_players):
         if action[i][0] == 1 and float(pygame.time.get_ticks() - state[i]["last_shoot_time"]) > 1000/float(MAX_SHOOT_FREQUENCY): #Shoot
-            ball_body, ball_shape = spawn_ball(space, state[i]["location_self"], action[i][1], action[i][2]*100*f2, state[i]["angle_self"], i)
-            space.add(ball_body, ball_shape)
+            spawn_ball(space, state[i]["location_self"], action[i][1], action[i][2]*100*f2, state[i]["angle_self"], i)
             state[i]["barrel_heat"] = state[i]["barrel_heat"] + action[i][2]
             state[i]["projectiles_left"] = state[i]["projectiles_left"] - 1
             state[i]["last_shoot_time"] = pygame.time.get_ticks()
@@ -207,7 +206,7 @@ if __name__ == '__main__':
             players[str(i)].velocity = (0, 0)
             players[str(i)].position = x1 + int(random.random()*8000)*f2, y1 + int(random.random()*5000)*f2
             state[i]['location_self'] = players[str(i)].position
-            state[i]['angle_self'] = players[str(i)].angle
+            state[i]['angle_self'] = degrees(players[str(i)].angle)
 
         space.debug_draw(draw_options)
         it = 0

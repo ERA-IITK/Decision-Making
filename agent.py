@@ -52,7 +52,7 @@ def agent_process_state(state):
     if str(state) != '':
         print "FROM AGENT ---------------------------------------------------"
         print str(state)
-        if i % 10 == 0 and 'projectiles_left' in state and state['projectiles_left'] > 38:
+        if i % 10 == 0 and 'projectiles_left' in state and state['projectiles_left'] > 0:
             a = '1,' + str(int(random.random()*180) - 90) + ',' + str(random.randrange(1, 25))
         else:
             a = '2,' + str(f2*float(random.randrange(0, 300))) + ',' + str(random.randrange(-10, 10)) + ',' + str(random.randrange(-5, 5))
