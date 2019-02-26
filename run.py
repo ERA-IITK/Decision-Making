@@ -34,7 +34,7 @@ show_sensors = True
 draw_screen = False
 
 FRAMES_IN_OBSERVATION = 4
-INPUT_SHAPE = (FRAMES_IN_OBSERVATION, 160, 100)
+INPUT_SHAPE = (FRAMES_IN_OBSERVATION, 100, 160)
 ACTION_SPACE_N = 3
 
 class AIChallenge:
@@ -50,23 +50,24 @@ class AIChallenge:
         self.create_car(100, 100, 0)
         # Record steps.
         self.time = 0
-        self.goal = (top_right[0]/2, top_left[1]/2 + 700*f2)
+        self.goal = (int(top_right[0]/2), int(top_left[1]/2 + 700*f2))
         x, y = self.car_body.position
         self.init_heuristic = Vec2d(self.goal[0]-x, self.goal[1]-y).get_length()
+        self.current_set_of_frames = np.zeros((FRAMES_IN_OBSERVATION, 100, 160))
         # Create walls.
         static = [
             pymunk.Segment(
                 self.space.static_body,
-                bottom_left, top_left, 1),
+                bottom_left, top_left, 4),
             pymunk.Segment(
                 self.space.static_body,
-                top_left, top_right, 1),
+                top_left, top_right, 4),
             pymunk.Segment(
                 self.space.static_body,
-                top_right, bottom_right, 1),
+                top_right, bottom_right, 4),
             pymunk.Segment(
                 self.space.static_body,
-                bottom_left, bottom_right, 1)
+                bottom_left, bottom_right, 4)
         ]
         for s in static:
             s.friction = 1.
@@ -118,7 +119,7 @@ class AIChallenge:
         self.car_body = pymunk.Body(1, inertia)
         self.car_body.position = x, y
         self.car_shape = pymunk.Circle(self.car_body, 25)
-        self.car_shape.color = THECOLORS["green"]
+        self.car_shape.color = THECOLORS["white"]
         self.car_shape.elasticity = 1.0
         self.car_body.angle = r
         driving_direction = Vec2d(1, 0).rotated(self.car_body.angle)
@@ -143,32 +144,39 @@ class AIChallenge:
         clock.tick()
         x, y = self.car_body.position
         readings = self.get_sonar_readings(x, y, self.car_body.angle)
+        pygame.draw.circle(screen, (255, 255, 0), (int(self.goal[0]), int(y_outer-self.goal[1])), 6)
         pygame.display.update()
         joining_line = Vec2d(self.goal[0]-x, self.goal[1]-y)
+        pygame.draw.line(screen, (255, 255, 255), (self.goal[0], y_outer-self.goal[1]) , (x, y_outer-y), 4)
+        pygame.display.update()
         j_angle = joining_line.angle
         j_angle = j_angle*int(j_angle>=0) + (j_angle+2*math.pi)*int(j_angle<0) 
         dist = math.sqrt((self.goal[0]-x)**2+(self.goal[1]-y)**2)
         terminal = False
         reward = 0
+        print("init_heuristic = " + str(self.init_heuristic))
+        print("current_heuristic = " + str(dist))
+        print("current pos = " + str(x) + ", " + str(y))
+        print("goal pos = " + str(self.goal))
         if self.car_is_crashed(readings):
             self.time -= 0.01
             self.crashed = True
             reward = -500 + self.time
             self.recover_from_crash(driving_direction)
             terminal = True
-        elif joining_line.get_length() > 100*f2:
+        elif joining_line.get_length() > 250*f2:
             self.time -= 0.01
             reward = (self.init_heuristic-joining_line.get_length())*LENGTH_COEFF
             if(self.time < -70):
                 self.time = 0
                 self.goal = (int(random.random()*29031)%8000*f2, int(random.random()*10093)%5000*f2)
-                while not (self.goal[0] > bottom_left[0]+90 or self.goal[0] < top_right[0]-90 or self.goal[1] > bottom_left[1]+90 or self.goal[1] < top_left[1]-90 or screen.get_at((int(self.goal[0]), int(self.goal[1]))) == THECOLORS['black']):
+                while not (self.goal[0] > bottom_left[0]+90 and self.goal[0] < top_right[0]-90 and self.goal[1] > bottom_left[1]+90 and self.goal[1] < top_left[1]-90 and screen.get_at((int(self.goal[0]), int(self.goal[1]))) == THECOLORS['black']):
                     self.goal = (int(random.random()*29031)%8000*f2, int(random.random()*10093)%5000*f2)
         else:
             self.time = 0
             reward = 300
             self.goal = (int(random.random()*29031)%8000*f2, int(random.random()*10093)%5000*f2)
-            while not (self.goal[0] > bottom_left[0]+90 or self.goal[0] < top_right[0]-90 or self.goal[1] > bottom_left[1]+90 or self.goal[1] < top_left[1]-90 or screen.get_at((int(self.goal[0]), int(self.goal[1]))) == THECOLORS['black']):
+            while not (self.goal[0] > bottom_left[0]+90 and self.goal[0] < top_right[0]-90 and self.goal[1] > bottom_left[1]+90 and self.goal[1] < top_left[1]-90 and screen.get_at((int(self.goal[0]), int(self.goal[1]))) == THECOLORS['black']):
                 self.goal = (int(random.random()*29031)%8000*f2, int(random.random()*10093)%5000*f2)
             self.init_heuristic = Vec2d(self.goal[0]-x, self.goal[1]-y).get_length()
         if math.fabs(joining_line.angle-self.car_body.angle) < 0.102:
@@ -179,7 +187,11 @@ class AIChallenge:
         pygame.image.save(screen, "buffer.png")
         image = cv.imread("buffer.png")
         state = cv.resize(image, (160, 100))
-        return state
+        state = cv.cvtColor(state, cv.COLOR_BGR2GRAY)
+        cv.imwrite("state.png", state)
+        for i in range(0, FRAMES_IN_OBSERVATION-2):
+            self.current_set_of_frames[i] = self.current_set_of_frames[i+1]
+        self.current_set_of_frames[FRAMES_IN_OBSERVATION-1] = state
 
     def car_is_crashed(self, readings):
         if readings[0] == 1 or readings[1] == 1 or readings[2] == 1:
@@ -221,7 +233,7 @@ class AIChallenge:
                 if self.get_track_or_not(obs) != 0:
                     return i
             if show_sensors:
-                pygame.draw.circle(screen, (255, 255, 255), (rotated_p), 2)
+                pygame.draw.circle(screen, (255, 255, 255), (rotated_p), 4)
         return i
 
     def make_sonar_arm(self, x, y):
@@ -256,7 +268,7 @@ class AIChallenge:
                 print("Reached total run limit of: " + str(total_run_limit))
                 exit(0)
             run += 1
-            current_state = self.make_state()
+            self.make_state()
             step = 0
             score = 0
             while True:
@@ -265,12 +277,12 @@ class AIChallenge:
                     exit(0)
                 total_step += 1
                 step += 1
-                action = game_model.move(current_state) 
+                action = game_model.move(self.current_set_of_frames) 
                 reward, terminal = self.frame_step(action)
                 score += reward
-                next_state = self.make_state()
-                game_model.remember(current_state, action, reward, next_state, terminal)
-                current_state = next_state
+                current_state = self.current_set_of_frames
+                self.make_state()
+                game_model.remember(current_state, action, reward, self.current_set_of_frames, terminal)
                 game_model.step_update(total_step)
                 if terminal:
                     game_model.save_run(score, step, run)

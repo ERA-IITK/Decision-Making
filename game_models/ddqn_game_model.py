@@ -5,6 +5,7 @@ import shutil
 import datetime
 from game_models.base_game_model import BaseGameModel
 from convolutional_neural_network import ConvolutionalNeuralNetwork
+from statistics import mean
 
 GAMMA = 0.99
 MEMORY_SIZE = 900000
@@ -12,7 +13,7 @@ BATCH_SIZE = 32
 TRAINING_FREQUENCY = 4
 TARGET_NETWORK_UPDATE_FREQUENCY = 40000
 MODEL_PERSISTENCE_UPDATE_FREQUENCY = 10000
-REPLAY_START_SIZE = 50000
+REPLAY_START_SIZE = 1000
 
 EXPLORATION_MAX = 1.0
 EXPLORATION_MIN = 0.1
@@ -83,14 +84,14 @@ class DDQNTrainer(DDQNGameModel):
             self.memory.pop(0)
 
     def step_update(self, total_step):
+        print("Step update")
         if len(self.memory) < REPLAY_START_SIZE:
-            return
-
-        if total_step % TRAINING_FREQUENCY == 0:
-            loss, accuracy, average_max_q = self._train()
-            self.logger.add_loss(loss)
-            self.logger.add_accuracy(accuracy)
-            self.logger.add_q(average_max_q)
+            return 
+        print(str(total_step))
+        loss, accuracy, average_max_q = self._train()
+        self.logger.add_loss(loss)
+        self.logger.add_accuracy(accuracy)
+        self.logger.add_q(average_max_q)
 
         self._update_epsilon()
 
